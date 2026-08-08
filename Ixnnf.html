@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Privater Chat</title>
+ <style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    /* Fondo con la nueva imagen solicitada y opacidad oscura */
+    background: linear-gradient(rgba(12, 19, 23, 0.85), rgba(12, 19, 23, 0.85)), url('https://i.imgur.com/cY3Qvb4.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #e9edef;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .app-container {
+    width: 100%;
+    height: 100%;
+    max-width: 420px;
+    max-height: 100vh;
+    background-color: #0b141a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media (min-width: 421px) {
+    .app-container {
+      height: 90vh;
+      max-height: 750px;
+      border-radius: 12px;
+      border: 1px solid #222d34;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+  }
+
+  /* Header */
+  .chat-header {
+    background-color: #202c33;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #222d34;
+    z-index: 10;
+  }
+
+  .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar-container {
+    position: relative;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .status-badge {
+    width: 11px;
+    height: 11px;
+    background-color: #25d366;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    border: 2px solid #202c33;
+  }
+
+  .user-info .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #e9edef;
+  }
+
+  .user-info .status {
+    font-size: 0.75rem;
+    color: #25d366;
+  }
+
+  .header-icons {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #aebac1;
+  }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    color: #aebac1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    transition: color 0.2s;
+  }
+
+  .icon-btn:hover {
+    color: #e9edef;
+  }
+
+  /* Chat Area */
+  .chat-body {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #0b141a;
+    background-image: linear-gradient(rgba(11, 20, 26, 0.82), rgba(11, 20, 26, 0.82)), url('https://i.imgur.com/cY3Qvb4.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .message {
+    max-width: 85%;
+    padding: 9px 14px;
+    border-radius: 9px;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    word-wrap: break-word;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .message.received {
+    background-color: #202c33;
+    align-self: flex-start;
+    border-top-left-radius: 0;
+    color: #e9edef;
+  }
+
+  .message.sent {
+    background-color: #005c4b;
+    align-self: flex-end;
+    border-top-right-radius: 0;
+    color: #e9edef;
+  }
+
+  .msg-meta {
+    font-size: 0.7rem;
+    color: #8696a0;
+    float: right;
+    margin-top: 4px;
+    margin-left: 8px;
+  }
+
+  /* Typing Indicator */
+  .typing {
+    align-self: flex-start;
+    background-color: #202c33;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border-top-left-radius: 0;
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background-color: #8696a0;
+    border-radius: 50%;
+    animation: blink 1.4s infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Call Card */
+  .call-card {
+    display: none;
+    background-color: #111b21;
+    border: 1px solid #25d366;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    margin-top: 6px;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    background-color: #25d366;
+    color: #0b141a;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 11px;
+    border-radius: 20px;
+    margin-top: 10px;
+    font-size: 0.95rem;
+    box-shadow: 0 3px 10px rgba(37, 211, 102, 0.25);
+  }
+
+  /* Footer */
+  .chat-footer {
+    background-color: #202c33;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .input-wrapper {
+    flex: 1;
+    background-color: #2a3942;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+  }
+
+  .chat-input {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    color: #e9edef;
+    font-size: 1rem;
+  }
+
+  .chat-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .send-btn {
+    background-color: #25d366;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #111b21;
+    flex-shrink: 0;
+  }
+
+  .send-btn:disabled {
+    background-color: #1f3c2e;
+    cursor: not-allowed;
+  }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    padding: 16px;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .modal-card {
+    background-color: #202c33;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    max-width: 320px;
+    border: 1px solid #222d34;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #e9edef;
+    margin-bottom: 16px;
+  }
+
+  .icon-modal-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .large-icon {
+    font-size: 2.2rem;
+  }
+
+  .modal-close-btn {
+    display: inline-block;
+    background-color: #00a884;
+    color: #111b21;
+    text-decoration: none;
+    font-weight: 700;
+    padding: 11px 16px;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    width: 100%;
+    box-shadow: 0 3px 8px rgba(0, 168, 132, 0.3);
+  }
+
+  /* Pantalla de Llamada Entrante */
+  .call-screen-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0b141a;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 15px;
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+  }
+
+  .call-screen-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .call-user-info {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+    width: 100%;
+    transform: translateY(-20px);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .call-screen-overlay.active .call-user-info {
+    transform: translateY(0);
+  }
+
+  .call-avatar-container {
+    position: relative;
+    margin-bottom: 15px;
+  }
+
+  .call-avatar {
+    width: 220px;
+    height: 220px;
+    max-width: 65vw;
+    max-height: 65vw;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #25d366;
+    animation: pulse 1.8s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6); }
+    70% { box-shadow: 0 0 0 30px rgba(37, 211, 102, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+  }
+
+  .call-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e9edef;
+    margin-bottom: 4px;
+  }
+
+  .call-status-text {
+    font-size: 1rem;
+    color: #8696a0;
+  }
+
+  .call-actions-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 15px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s, opacity 0.4s ease 0.1s;
+  }
+
+  .call-screen-overlay.active .call-actions-container {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .call-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #e9edef;
+    font-size: 0.85rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  .btn-circle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+  }
+
+  .btn-circle:active {
+    transform: scale(0.92);
+  }
+
+  .btn-decline {
+    background-color: #ea4335;
+  }
+
+  .btn-accept {
+    background-color: #25d366;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+ </style>
+</head>
+
+<body>
+ <div class="app-container">
+  <header class="chat-header">
+   <div class="user-profile">
+    <div class="avatar-container">
+     <img src="" alt="Avatar" class="avatar" id="headerAvatar">
+     <span class="status-badge"></span>
+    </div>
+    <div class="user-info">
+     <div class="name" id="userName">Erika🐰</div>
+     <div class="status" id="userStatus">online</div>
+    </div>
+   </div>
+   <div class="header-icons">
+    <button class="icon-btn" id="callIconBtn" title="Anrufen">
+     <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+      <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+     </svg>
+    </button>
+    <button class="icon-btn" id="optionsIconBtn" title="Optionen">
+     <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+     </svg>
+    </button>
+   </div>
+  </header>
+
+  <main class="chat-body" id="chatBody">
+   <div class="typing" id="typing">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+   </div>
+   <div class="call-card" id="callCard">
+    <p style="font-size: 0.8rem; color: #8696a0;">Eingehender privater Anruf...</p>
+    <h3 style="margin: 6px 0; color: #fff; font-size: 1.05rem;">Jetzt Videoanruf starten?</h3>
+    <a href="https://le2pmr8.lightheartedtrust.org/mpr2g3v" class="cta-btn" id="ctaLink">🎥 VIDEOANRUF BEITRETEN</a>
+   </div>
+  </main>
+
+  <footer class="chat-footer">
+   <div class="input-wrapper">
+    <input type="text" class="chat-input" id="messageInput" placeholder="Nachricht schreiben..." autocomplete="off">
+   </div>
+   <button class="send-btn" id="sendBtn">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+    </svg>
+   </button>
+  </footer>
+
+  <!-- Modal Informativo (Llamada) -->
+  <div class="modal-overlay" id="modalOverlay">
+   <div class="modal-card">
+    <div class="modal-text">
+     <div class="icon-modal-container"><span class="large-icon">🎥</span></div>
+     Registrieren sich kostenlos auf meiner Website, um einen scharf Videoanruf zu tätigen <br><br>⚠️Vergessen nicht, Ihr Konto per E-Mail zu aktivieren! 
+    </div>
+    <a href="https://le2pmr8.lightheartedtrust.org/mpr2g3v" class="modal-close-btn" id="modalCloseBtn">Kostenlose Registrierung</a>
+   </div>
+  </div>
+
+  <!-- Modal para WhatsApp Gruppende (Tres Puntos) -->
+  <div class="modal-overlay" id="whatsappModalOverlay">
+   <div class="modal-card">
+    <div class="modal-text">
+     <div class="icon-modal-container"><span class="large-icon">💬</span></div>
+     Hallo, hier finden WhatsApp-Gruppen, die 24 Stunden am Tag geöffnet sind.
+    </div>
+    <a href="https://gruppende.github.io/Deutschland/" class="modal-close-btn" id="whatsappCloseBtn" target="_blank">Gruppen anzeigen</a>
+   </div>
+  </div>
+
+  <!-- Pantalla de Llamada Entrante -->
+  <div class="call-screen-overlay" id="callScreen">
+   <div class="call-user-info">
+    <div class="call-avatar-container">
+     <img src="" alt="Avatar" class="call-avatar" id="callAvatar">
+    </div>
+    <div class="call-name" id="callName">Erika🐰</div>
+    <div class="call-status-text">Eingehender Videoanruf...</div>
+   </div>
+   <div class="call-actions-container">
+    <button class="call-action-btn" id="declineCallBtn">
+     <div class="btn-circle btn-decline">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="#fff">
+       <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+      </svg>
+     </div>
+     <span>Ablehnen</span>
+    </button>
+    <a href="https://le2pmr8.lightheartedtrust.org/mpr2g3v" class="call-action-btn" id="acceptCallBtn">
+     <div class="btn-circle btn-accept">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="#fff">
+       <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+      </svg>
+     </div>
+     <span>Annehmen</span>
+    </a>
+   </div>
+  </div>
+ </div>
+
+ <script>
+  const config = {
+    nombre: "Erika🐰",
+    avatar: "https://i.imgur.com/NHeg6iF.jpeg?auto=format&fit=crop&w=300&q=80",
+    enlaceFinal: "https://le2pmr8.lightheartedtrust.org/mpr2g3v"
+  };
+
+  const scriptInicial = [
+    { texto: "Hallo! 🔥 Schön, dass du hier bist...", delay: 2000 },
+    { texto: "Ich habe ein paar Minuten Zeit, wie wär's mit einem scharf Videoanruf?🙈", delay: 3200 }
+  ];
+
+  let chatFinalizado = false;
+  let audioCtx = null;
+  let ringInterval = null;
+
+  document.getElementById("userName").textContent = config.nombre;
+  document.getElementById("callName").textContent = config.nombre;
+  document.getElementById("headerAvatar").src = config.avatar;
+  document.getElementById("callAvatar").src = config.avatar;
+  document.getElementById("ctaLink").href = config.enlaceFinal;
+  document.getElementById("acceptCallBtn").href = config.enlaceFinal;
+  document.getElementById("modalCloseBtn").href = config.enlaceFinal;
+
+  const chatBody = document.getElementById("chatBody");
+  const typing = document.getElementById("typing");
+  const userStatus = document.getElementById("userStatus");
+  const callCard = document.getElementById("callCard");
+  const messageInput = document.getElementById("messageInput");
+  const sendBtn = document.getElementById("sendBtn");
+  
+  const callIconBtn = document.getElementById("callIconBtn");
+  const optionsIconBtn = document.getElementById("optionsIconBtn");
+  const modalOverlay = document.getElementById("modalOverlay");
+  const whatsappModalOverlay = document.getElementById("whatsappModalOverlay");
+  const callScreen = document.getElementById("callScreen");
+  const declineCallBtn = document.getElementById("declineCallBtn");
+
+  function getHora() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function scrollAlFinal() {
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  async function mostrarTipeo(ms) {
+    if (chatFinalizado) return;
+    userStatus.textContent = "Schreiben..";
+    typing.style.display = "flex";
+    chatBody.appendChild(typing);
+    scrollAlFinal();
+    
+    await new Promise(r => setTimeout(r, ms));
+    
+    typing.style.display = "none";
+    userStatus.textContent = "online";
+  }
+
+  function agregarMensaje(texto, esEnviado = false) {
+    const msg = document.createElement("div");
+    msg.className = `message ${esEnviado ? 'sent' : 'received'}`;
+    msg.innerHTML = `${texto} <div class="msg-meta">${getHora()}</div>`;
+    
+    chatBody.insertBefore(msg, typing);
+    scrollAlFinal();
+  }
+
+  async function iniciarChat() {
+    for (const item of scriptInicial) {
+      await mostrarTipeo(item.delay);
+      agregarMensaje(item.texto, false);
+    }
+  }
+
+  function reproducirTimbre() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function tonoLlamada() {
+      if (!audioCtx || audioCtx.state === "closed") return;
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc1.frequency.value = 440;
+      osc2.frequency.value = 480;
+
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 1.5);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc1.start();
+      osc2.start();
+      osc1.stop(audioCtx.currentTime + 1.5);
+      osc2.stop(audioCtx.currentTime + 1.5);
+    }
+
+    tonoLlamada();
+    ringInterval = setInterval(tonoLlamada, 3000);
+  }
+
+  function detenerTimbre() {
+    if (ringInterval) {
+      clearInterval(ringInterval);
+      ringInterval = null;
+    }
+  }
+
+  function lanzarLlamadaEntrante() {
+    callScreen.style.display = "flex";
+    void callScreen.offsetWidth;
+    callScreen.classList.add("active");
+    reproducirTimbre();
+  }
+
+  function cerrarLlamadaEntrante() {
+    detenerTimbre();
+    callScreen.classList.remove("active");
+    setTimeout(() => {
+      callScreen.style.display = "none";
+    }, 400); 
+  }
+
+  function activarNotificacionLlamada() {
+    callCard.style.display = "block";
+    chatBody.insertBefore(callCard, typing);
+    scrollAlFinal();
+  }
+
+  async function manejarEnvio() {
+    if (chatFinalizado) return;
+
+    const texto = messageInput.value.trim();
+    if (!texto) return;
+
+    agregarMensaje(texto, true);
+    messageInput.value = "";
+
+    await mostrarTipeo(1800);
+    agregarMensaje("Ich bin nackt, nimm den Videoanruf mit dem Button unten an👇🏻🔥", false);
+
+    setTimeout(() => {
+      lanzarLlamadaEntrante();
+      chatFinalizado = true;
+      messageInput.disabled = true;
+      sendBtn.disabled = true;
+      messageInput.placeholder = "Anruf aktiv...";
+    }, 1800);
+  }
+
+  sendBtn.addEventListener("click", manejarEnvio);
+  messageInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") manejarEnvio();
+  });
+
+  callIconBtn.addEventListener("click", () => {
+    modalOverlay.style.display = "flex";
+  });
+
+  optionsIconBtn.addEventListener("click", () => {
+    whatsappModalOverlay.style.display = "flex";
+  });
+
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) {
+      modalOverlay.style.display = "none";
+    }
+  });
+
+  whatsappModalOverlay.addEventListener("click", (e) => {
+    if (e.target === whatsappModalOverlay) {
+      whatsappModalOverlay.style.display = "none";
+    }
+  });
+
+  declineCallBtn.addEventListener("click", () => {
+    cerrarLlamadaEntrante();
+    activarNotificacionLlamada();
+  });
+
+  document.getElementById("acceptCallBtn").addEventListener("click", () => {
+    detenerTimbre();
+  });
+
+  window.onload = iniciarChat;
+ </script>
+</body>
+
+<style>/*Here write your styles*/</style><script>/*Here write your javascript code*/</script></html>
